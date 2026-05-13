@@ -7,7 +7,8 @@ from ripser import ripser
 
 
 def compute_persistence_volume(volume, max_dim=1, min_persistence=0.0,
-                               filtration='superlevel', smooth_sigma=None):
+                               filtration='superlevel', normalize=True,
+                               smooth_sigma=None):
     """Compute persistence diagrams from an image volume using cubical homology.
 
     Args:
@@ -16,6 +17,7 @@ def compute_persistence_volume(volume, max_dim=1, min_persistence=0.0,
         min_persistence (float): Minimum persistence (death - birth) to keep.
         filtration (str): 'superlevel' or 'sublevel'. Superlevel is recommended
             for PET activity images.
+        normalize (bool): Rescale volume to [0, 1] before filtration.
         smooth_sigma (float | None): Gaussian smoothing sigma in voxels.
             If None, no smoothing is applied.
 
@@ -30,11 +32,12 @@ def compute_persistence_volume(volume, max_dim=1, min_persistence=0.0,
         from scipy.ndimage import gaussian_filter
         volume = gaussian_filter(volume, sigma=smooth_sigma)
 
-    vmin, vmax = float(volume.min()), float(volume.max())
-    if vmax > vmin:
-        volume = (volume - vmin) / (vmax - vmin)
-    else:
-        volume = np.zeros_like(volume)
+    if normalize:
+        vmin, vmax = float(volume.min()), float(volume.max())
+        if vmax > vmin:
+            volume = (volume - vmin) / (vmax - vmin)
+        else:
+            volume = np.zeros_like(volume)
 
     cells = -volume if filtration == 'superlevel' else volume
 
