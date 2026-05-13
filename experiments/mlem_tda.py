@@ -234,7 +234,11 @@ def run_variability_study(device='cpu'):
                 del sino, indices
 
             dgm = compute_persistence_volume(
-                image, max_dim=MAX_DIM, min_persistence=MIN_PERSISTENCE
+                image,
+                max_dim=MAX_DIM,
+                min_persistence=MIN_PERSISTENCE,
+                filtration='sublevel',
+                normalize=False
             )
             frame_diagrams.append(dgm)
             print(f"  Frame {f + 1}/{num_frames}, sample {s + 1}/{INTRA_SAMPLES}",
