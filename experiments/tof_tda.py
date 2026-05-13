@@ -39,13 +39,7 @@ def _load_phantom(device):
 
 
 def _sample_sinograms(xcat, proj, sino_dir):
-    """Sample events for all frames and save indices to disk if not cached.
-
-    Args:
-        xcat (torch.Tensor): Phantom of shape (num_frames, Nz, Ny, Nx).
-        proj (RegularPolygonPETProjector): Configured projector.
-        sino_dir (Path): Directory to save sinogram indices.
-    """
+    """Sample events for all frames and save indices to disk if not cached."""
     sino_dir.mkdir(parents=True, exist_ok=True)
     num_frames = xcat.shape[0]
 
@@ -61,16 +55,7 @@ def _sample_sinograms(xcat, proj, sino_dir):
 
 
 def _build_point_clouds(sino_dir, proj, num_frames):
-    """Build TOF point clouds from saved sinogram indices.
-
-    Args:
-        sino_dir (Path): Directory with sinogram indices.
-        proj (RegularPolygonPETProjector): Configured projector.
-        num_frames (int): Number of frames.
-
-    Returns:
-        list[torch.Tensor]: Point clouds, one per frame, each of shape (N, 3).
-    """
+    """Build TOF point clouds from saved sinogram indices."""
     point_clouds = []
     for f in range(num_frames):
         indices = torch.load(sino_dir / f"sino_{f:02d}.pt")
