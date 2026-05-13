@@ -88,7 +88,10 @@ def _compute_diagrams(reconstructions):
     num_frames = len(reconstructions)
     for f, image in enumerate(reconstructions):
         dgm = compute_persistence_volume(
-            image, max_dim=MAX_DIM, min_persistence=MIN_PERSISTENCE
+            image, max_dim=MAX_DIM,
+            min_persistence=MIN_PERSISTENCE,
+            filtration='sublevel',
+            normalize=False
         )
         h0, h1 = len(dgm[0]), len(dgm[1])
         print(f"  Frame {f + 1} / {num_frames}: H0={h0} H1={h1}")
