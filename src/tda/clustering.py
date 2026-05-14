@@ -1,6 +1,7 @@
 """Clustering and evaluation for persistence diagram distance matrices."""
 
 import numpy as np
+from scipy.optimize import linear_sum_assignment
 from sklearn.cluster import SpectralClustering
 from sklearn.metrics import adjusted_rand_score
 from scipy.stats import spearmanr
@@ -38,6 +39,41 @@ def compute_ari(labels, ground_truth):
         float: ARI score between -1 and 1, where 1 is perfect clustering.
     """
     return float(adjusted_rand_score(ground_truth, labels))
+
+
+def compute_dice_score(labels, ground_truth, num_clusters):
+    """Compute the mean Dice score between cluster labels and ground truth.
+
+    Uses the Hungarian algorithm to find the optimal label mapping before
+    computing per-cluster Dice scores.
+
+    Args:
+        labels (np.ndarray): Cluster labels of shape (N,).
+        ground_truth (np.ndarray): Ground truth labels of shape (N,).
+        num_clusters (int): Number of clusters.
+
+    Returns:
+        float: Mean Dice score between 0 and 1.
+    """
+    cost_matrix = np.zeros((num_clusters, num_clusters))
+    for i in range(num_clusters):
+        for j in range(num_clusters):
+            cost_matrix[i, j] = -np.sum((labels == i) & (ground_truth == j))
+
+    row_ind, col_ind = linear_sum_assignment(cost_matrix)
+    mapping = np.zeros(num_clusters, dtype=int)
+    mapping[row_ind] = col_ind
+    matched = mapping[labels]
+
+    scores = []
+    for k in range(num_clusters):
+        a = matched == k
+        b = ground_truth == k
+        intersection = np.sum(a & b)
+        score = 2 * intersection / (np.sum(a) + np.sum(b))
+        scores.append(score)
+
+    return float(np.mean(scores))
 
 
 def compute_spearman(dist_matrix, ground_truth):

@@ -11,7 +11,7 @@ from src.simulation.listmode import sample_events, build_sinogram
 from src.representation.mlem import reconstruct_mlem
 from src.tda.persistence import compute_persistence_volume
 from src.tda.distances import compute_distance_matrix
-from src.tda.clustering import cluster_frames, compute_ari, compute_spearman
+from src.tda.clustering import cluster_frames, compute_ari, compute_spearman, compute_dice_score
 from src.utils.visualization import (
     plot_volume,
     plot_persistence_diagram,
@@ -27,7 +27,7 @@ Z_END = 325
 NUM_EVENTS = 35_000
 NUM_PHASES = 10
 NUM_CYCLES = 2
-MIN_PERSISTENCE = 0.000005
+MIN_PERSISTENCE = 0.000002
 MAX_DIM = 1
 ITERATIONS_TO_TEST = [1, 3, 5, 7, 9]
 INTRA_ITERATIONS = 5
@@ -103,8 +103,8 @@ def run_iteration_study(device='cpu'):
     """Study how MLEM iteration count affects TDA clustering quality.
 
     Reconstructs all frames for each iteration count, computes persistence
-    diagrams and distance matrices, clusters frames and evaluates with ARI
-    and Spearman correlation. Saves a plot of clustering scores vs iterations.
+    diagrams and distance matrices, clusters frames and evaluates with ARI,
+    Dice score and Spearman correlation. Saves a plot of scores vs iterations.
 
     Args:
         device (str): Torch device, e.g. 'cpu' or 'cuda'.
@@ -128,6 +128,7 @@ def run_iteration_study(device='cpu'):
     del xcat
 
     ari_scores = []
+    dice_scores = []
     spearman_scores = []
 
     for num_iterations in ITERATIONS_TO_TEST:
@@ -157,27 +158,36 @@ def run_iteration_study(device='cpu'):
         )
 
         labels = cluster_frames(dist_matrix, num_clusters=NUM_PHASES)
+        dice = compute_dice_score(labels, GROUND_TRUTH, num_clusters=NUM_PHASES)
         ari = compute_ari(labels, GROUND_TRUTH)
         rho, pval = compute_spearman(dist_matrix, GROUND_TRUTH)
         ari_scores.append(ari)
+        dice_scores.append(dice)
         spearman_scores.append(rho)
-        print(f"  ARI={ari:.3f}  Spearman ρ={rho:.3f} (p={pval:.2e})")
+        print(f"  ARI={ari:.3f}  Dice={dice:.3f}  Spearman ρ={rho:.3f} (p={pval:.2e})")
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 
     axes[0].plot(ITERATIONS_TO_TEST, ari_scores, marker='o')
     axes[0].set_xlabel("MLEM iterations")
     axes[0].set_ylabel("ARI")
-    axes[0].set_title("Clustering quality vs MLEM iterations")
+    axes[0].set_title("ARI vs MLEM iterations")
     axes[0].set_ylim(-1, 1)
     axes[0].grid(True)
 
-    axes[1].plot(ITERATIONS_TO_TEST, spearman_scores, marker='o', color='tomato')
+    axes[1].plot(ITERATIONS_TO_TEST, dice_scores, marker='o', color='seagreen')
     axes[1].set_xlabel("MLEM iterations")
-    axes[1].set_ylabel("Spearman ρ")
-    axes[1].set_title("Phase correlation vs MLEM iterations")
-    axes[1].set_ylim(-1, 1)
+    axes[1].set_ylabel("Dice score")
+    axes[1].set_title("Dice score vs MLEM iterations")
+    axes[1].set_ylim(0, 1)
     axes[1].grid(True)
+
+    axes[2].plot(ITERATIONS_TO_TEST, spearman_scores, marker='o', color='tomato')
+    axes[2].set_xlabel("MLEM iterations")
+    axes[2].set_ylabel("Spearman ρ")
+    axes[2].set_title("Phase correlation vs MLEM iterations")
+    axes[2].set_ylim(-1, 1)
+    axes[2].grid(True)
 
     plt.tight_layout()
     save_or_show(fig, path=iter_dir / "scores.png")
@@ -298,6 +308,7 @@ def run_variability_study(device='cpu'):
 
 
 if __name__ == "__main__":
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = 'cpu'
     run_iteration_study(device=device)
-    run_variability_study(device=device)
+    # run_variability_study(device=device)
